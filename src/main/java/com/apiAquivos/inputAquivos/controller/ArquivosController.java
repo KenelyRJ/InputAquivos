@@ -1,10 +1,12 @@
 package com.apiAquivos.inputAquivos.controller;
 /*package com.apiAquivos*/
+
 import com.apiAquivos.inputAquivos.service.ArquivosService;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
+@CrossOrigin(origins = "http://localhost:3000")
 public class ArquivosController {
 
     private final ArquivosService arquivosService;
@@ -16,6 +18,12 @@ public class ArquivosController {
     @PostMapping("/arquivos")
     public String processaArquivo(@RequestPart("file") MultipartFile file) {
         return arquivosService.processaArquivo(file);
+    }
+
+    @GetMapping("/arquivos/mostrar")
+    public String mostrarArquivo(@RequestParam String nome) {
+        return arquivosService.mostrarArquivo(nome);
+
     }
 }
 
