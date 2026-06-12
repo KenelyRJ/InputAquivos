@@ -1,45 +1,87 @@
 package com.apiAquivos.inputAquivos.service;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import com.apiAquivos.inputAquivos.dto.ArquivoDto;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.stream.Collectors;
 
 @Service
 public class ArquivosService {
 
-    private String conteudo;
+    private ArquivoDto ultimoArquivo;
+    private String diretorio = "C:\\Users\\kenel\\Documents\\processo";
 
-    /// para guardar o arquivo
-    @PostMapping("/arquivos")
-    @Operation(summary = "arquivos xml ou txt", description = "metodo para a entrada de arquivos")
-    @ApiResponse(responseCode = "200", description = "inserção de arquivos com sucesso")
-    public String processaArquivo(@RequestPart("file") MultipartFile file) {
-        try {//O processamento do arquivo é lido como UTF-8
-            conteudo = new BufferedReader(
+    public ArquivoDto processaArquivo(MultipartFile file) {
+
+        try {
+            String conteudo = new BufferedReader(
                     new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))
                     .lines()
-                    .map(linha -> linha.replaceAll(">(\\s*)([^<]*?)(\\s*)<", ">$2<"))
+                    .map(linha -> linha.replaceAll("([^<]*?)([^<]*?)\\s*$", "$2"))
+                    .filter(linha -> !linha.isEmpty())
                     .collect(Collectors.joining("\n"));
 
-            return conteudo;
+            ultimoArquivo = new ArquivoDto(file.getOriginalFilename(), file.getContentType(), conteudo);
+
+            /// verifica se a pasta existe
+            File pasta = new File(diretorio);
+            if (!pasta.exists()) {
+                boolean criado = pasta.mkdirs();
+                //cria a pasta
+                if (!criado) {
+                    throw new IOException("Não foi possível criar o diretório: " + diretorio);
+                }
+
+            }
+
+            File caminhoExiste = new File(diretorio, file.getOriginalFilename());
+            if (caminhoExiste.exists()) {
+                throw new IOException("Aquivo ja existe" + caminhoExiste.getAbsolutePath());
+            }
+
+
+            // Define o arquivo de destino dentro da pasta
+            //Instancia classe file e passa como parametro os dados processados e criados(pasta)
+            File caminhoPasta = new File(pasta, file.getOriginalFilename());
+            // Grava o conteúdo processado usando BufferedOutputStream que é melhor que o FileReader
+            try (
+                    BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(caminhoPasta))) {
+                bos.write(conteudo.getBytes(StandardCharsets.UTF_8));
+            }
+            return ultimoArquivo;
+
+        } catch (IOException e) {
+            // trata erros de I/O (arquivo, diretório, escrita)
+            throw new RuntimeException("" +
+                    "ja existe esse arquivo no diretório", e);
+
         } catch (Exception e) {
-            return "Erro ao processar o arquivo" + e.getMessage();
-
+            throw new RuntimeException("Erro ao processar arquivo", e);
         }
+    }
+
+    public String listarUltimoArquivo() {
+        if (ultimoArquivo == null) {
+            throw new IllegalStateException("Arquivo nulo");
+        }
+        return ultimoArquivo.getConteudo();
 
     }
 
-    public String mostrarArquivo(String nome) {
-        return conteudo != null ? conteudo : "nehum arquivo encontrado";
+    public String validarArquivo(String file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("arquivo enviado é inválido");
+        }
+        return "invalido";
     }
+
 }
+
+
+
+
+
+
