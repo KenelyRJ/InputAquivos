@@ -1,0 +1,9 @@
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    path: /docs
+  info:
+    title: Minha API
+    description: Documentação gerada automaticamente
+    version: 1.0.0

@@ -1,0 +1,32 @@
+
+
+.body { font-family: Arial, sans-serif;
+ margin: 40px;
+  background: #f4f4f9;
+  color: #333;
+  line-height: 1.6;
+  }
+ h1, h2 {
+ color: #2c3e50;
+  }
+ .slide { background: white;
+      padding: 30px; margin: 20px 0;
+      border-radius: 8px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.1);
+      max-width: 1000px;
+  }
+  pre {
+      background: #2c3e50;
+      color: #ecf0f1;
+      padding: 15px;
+      border-radius: 5px;
+      overflow-x: auto;
+   }
+  code {
+  font-family: 'Courier New',monospace; }
+  .highlight {
+         background: #e8f4fd;
+         padding: 2px 6px;
+         border-radius: 3px; }
+}
+

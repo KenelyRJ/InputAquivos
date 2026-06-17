@@ -1,0 +1,4 @@
+criar um aplicação que
+recebe um arquivo
+trata os espaço
+devolve

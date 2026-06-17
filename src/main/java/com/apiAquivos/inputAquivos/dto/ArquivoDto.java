@@ -1,14 +1,9 @@
 package com.apiAquivos.inputAquivos.dto;
 
 import jakarta.validation.constraints.*;
-import jakarta.validation.constraints.Null;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.extern.log4j.Log4j2;
-import org.jspecify.annotations.Nullable;
-import org.springframework.context.annotation.Bean;
-
 import java.io.Serial;
 import java.io.Serializable;
 
@@ -24,9 +19,9 @@ public class ArquivoDto implements Serializable {
     String nome;
     @NotBlank
     String tipo;
-
-    @NotBlank
+    @NotEmpty
     String conteudo;
+
 
 
 
