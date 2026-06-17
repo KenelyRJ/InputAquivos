@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apresentação: API de Upload de Arquivos - MultipartFile</title>
+    <link rel="stylesheet" href="css-api.css">
+
+</head>
+<body>
+<h1>📁 Apresentação: API de Upload de Arquivos</h1>
+<p><strong>Foco:</strong> Entrada de Arquivo com <code>MultipartFile</code> no Spring Boot</p>
+
+<div class="slide">
+    <h2>Slide 1: Visão Geral da API</h2>
+    <ul>
+        <li>API REST para upload e processamento de arquivos (XML/TXT)</li>
+        <li>Endpoint principal: <code>POST /api/v1/arquivos</code></li>
+        <li>Retorna conteúdo processado + salva em disco</li>
+        <li>GET para visualizar o último arquivo</li>
+        <li>Tecnologia: Spring Boot + MultipartFile</li>
+    </ul>
+</div>
+
+<div class="slide">
+    <h2>Slide 2: O que é MultipartFile?</h2>
+    <p><strong>MultipartFile</strong> é a interface do Spring para lidar com uploads via <code>multipart/form-data</code>.</p>
+    <ul>
+        <li>Abstrai o parsing do request HTTP</li>
+        <li>Fornece acesso a: nome, tipo de conteúdo, tamanho, stream de bytes</li>
+    </ul>
+    <pre><code>@PostMapping("/arquivos")
+public ArquivoDto processaArquivo(@RequestPart("file") MultipartFile file)</code></pre>
+    <ul>Obs: Controller é o controlador que recebe as requisição e "invoka" o services para as regras de negócios</ul>
+</div>
+
+
+<div class="slide">
+    <h2>Slide 3: Como funciona o Upload</h2>
+    <ol>
+        <li>Cliente envia requisição <code>multipart/form-data</code> (Postman, frontend, etc.)</li>
+        <li>Spring converte para <code>MultipartFile</code></li>
+        <li>No Service:
+            <ul>
+                <li>Lê o conteúdo com <code>InputStream</code></li>
+                <li>Processa (limpa linhas com regex)</li>
+                <li>Salva no diretório configurado</li>
+            </ul>
+        </li>
+    </ol>
+</div>
+
+<div class="slide">
+    <h2>Slide 4: Código do Controller</h2>
+    <pre><code>@PostMapping("/arquivos")
+@Operation(summary = "Upload de arquivos xml ou txt")
+public ArquivoDto processaArquivo(@RequestPart("file") MultipartFile file) {
+    return arquivosService.processaArquivo(file);
+}</code></pre>
+
+</div>
+
+<div class="slide">
+    <h2>Slide 5: Processamento no Service</h2>
+    <pre><code>String conteudo = new BufferedReader(
+    new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))
+    .lines()
+    .map(linha -> linha.replaceAll("([^<]*?)([^<]*?)\\s*$", "$2"))
+    .filter(linha -> !linha.isEmpty())
+    .collect(Collectors.joining("\n"));</code></pre>
+    <p>Remove prefixos indesejados e linhas vazias.</p>
+</div>
+
+<div class="slide">
+    <h2>Slide 6: Salvamento e Validações</h2>
+    <ul>
+        <li>Cria diretório se não existir: <code>C:\Users\kenel\Documents\processo</code></li>
+        <li>Verifica duplicatas antes de salvar</li>
+        <li>Usa <code>BufferedOutputStream</code> para eficiência</li>
+        <li>DTO com validações Lombok + Jakarta</li>
+    </ul>
+    <p>Buffered interno usa (por padrão, 8 KB) para acumular dados e só escreve no destino quando o buffer está cheio </p>
+</div>
+
+<div class="slide">
+    <h2>Slide 7: Melhores Práticas com MultipartFile</h2>
+    <ul>
+        <li>Configure limites em <code>application.properties</code>:
+            <pre><code>spring.servlet.multipart.max-file-size=10MB
+spring.servlet.multipart.max-request-size=10MB</code></pre>
+        </li>
+        <li>Validar tipo de arquivo e tamanho cedo</li>
+        <li>Prefirir streaming para arquivos grandes</li>
+        <li>Tratar exceções de IO melhor</li>
+        <li>Usar armazenamento em nuvem para produção AWS</li>
+        <LI>Acrescentar timestamp ou contador ao nome para evitar exlusão manualmente</LI>
+    </ul>
+    <p>Obs: Possíveis melhorias apontadas para restringir e limitar o grande volume</p>
+</div>
+
+<div class="slide">
+    <h2>Slide 8: Exemplo de Uso no Postman (Postman)</h2>
+    <p>POST → <code>http://localhost:8080/api/v1/arquivos</code></p>
+    <ul>
+        <li>Body → form-data</li>
+        <li>Key: <strong>file</strong> (tipo File)</li>
+        <li>Selecione arquivo XML/TXT</li>
+    </ul>
+    <p>Resposta: JSON com nome, tipo e conteúdo processado.</p>
+</div>
+<div class="slide">
+    <h2>Conclusão</h2>
+    <li>A Aplicação é sugerida como protótipo e apresentação de futuras melhoras...  </li>
+</div>
+
+<p><em>Apresentação gerada para fins didáticos. Para versão .pptx completa, posso criar um arquivo editável.</em></p>
+</body>
+</html>

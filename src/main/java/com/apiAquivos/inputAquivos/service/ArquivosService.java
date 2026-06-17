@@ -1,25 +1,35 @@
 package com.apiAquivos.inputAquivos.service;
-
 import com.apiAquivos.inputAquivos.dto.ArquivoDto;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.io.*;
+import java.nio.file.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.nio.charset.StandardCharsets;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 
 @Service
 public class ArquivosService {
 
     private ArquivoDto ultimoArquivo;
-    private String diretorio = "C:\\Users\\kenel\\Documents\\processo";
+    private Path diretorioBkp;
+    private Path diretorioDestino;
+
+    public ArquivosService(@Value("${app.upload.dir}") String diretorioConfigurado,
+                           @Value("${app.bkp.dir}") String diretorioBkpConfigurado) {
+        this.diretorioDestino = Paths.get(diretorioConfigurado);
+        this.diretorioBkp = Paths.get(diretorioBkpConfigurado);
+    }
 
     public ArquivoDto processaArquivo(MultipartFile file) {
 
         try {
-            String conteudo = new BufferedReader(
-                    new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))
-                    .lines()
+            String conteudo = new BufferedReader(new InputStreamReader(file.getInputStream(),
+                    StandardCharsets.UTF_8)).lines()
                     .map(linha -> linha.replaceAll("([^<]*?)([^<]*?)\\s*$", "$2"))
                     .filter(linha -> !linha.isEmpty())
                     .collect(Collectors.joining("\n"));
@@ -27,40 +37,52 @@ public class ArquivosService {
             ultimoArquivo = new ArquivoDto(file.getOriginalFilename(), file.getContentType(), conteudo);
 
             /// verifica se a pasta existe
-            File pasta = new File(diretorio);
+            File pasta = new File(diretorioDestino.toString());
             if (!pasta.exists()) {
                 boolean criado = pasta.mkdirs();
                 //cria a pasta
                 if (!criado) {
-                    throw new IOException("Não foi possível criar o diretório: " + diretorio);
+                    throw new IOException("Não foi possível criar o diretório: " + diretorioDestino);
                 }
 
             }
 
-            File caminhoExiste = new File(diretorio, file.getOriginalFilename());
-            if (caminhoExiste.exists()) {
-                throw new IOException("Aquivo ja existe" + caminhoExiste.getAbsolutePath());
-            }
+            String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss"));
+            String nomeOriginal = file.getOriginalFilename();
+            String novoNome = timestamp + "_" + nomeOriginal;
 
 
-            // Define o arquivo de destino dentro da pasta
-            //Instancia classe file e passa como parametro os dados processados e criados(pasta)
-            File caminhoPasta = new File(pasta, file.getOriginalFilename());
-            // Grava o conteúdo processado usando BufferedOutputStream que é melhor que o FileReader
-            try (
-                    BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(caminhoPasta))) {
+            File caminhoPasta = new File(pasta, novoNome);
+            try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(caminhoPasta))) {
                 bos.write(conteudo.getBytes(StandardCharsets.UTF_8));
             }
+
             return ultimoArquivo;
 
         } catch (IOException e) {
             // trata erros de I/O (arquivo, diretório, escrita)
-            throw new RuntimeException("" +
-                    "ja existe esse arquivo no diretório", e);
+            throw new RuntimeException("" + "ja existe esse arquivo no diretório", e);
 
         } catch (Exception e) {
             throw new RuntimeException("Erro ao processar arquivo", e);
         }
+    }
+
+    public void scheduleRemoveArq() throws IOException {
+        try (Stream<Path> arquivos = Files.list(diretorioDestino)) {
+
+            arquivos.forEach(arquivo -> {
+                try {
+                    Path destino = diretorioBkp.resolve( arquivo.getFileName());
+
+                    Files.move(arquivo,destino,StandardCopyOption.REPLACE_EXISTING);
+
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        }
+
     }
 
     public String listarUltimoArquivo() {
@@ -71,11 +93,17 @@ public class ArquivosService {
 
     }
 
-    public String validarArquivo(String file) {
+    public ArquivoDto validarArquivo(MultipartFile file) {
+        long maxSize = 10 * 1024 * 1024; // 10MB
+
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("arquivo enviado é inválido");
+            throw new IllegalArgumentException("Arquivo enviado é inválido (nulo ou vazio)");
         }
-        return "invalido";
+
+        if (file.getSize() > maxSize) {
+            throw new RuntimeException ("Arquivo enviado excede o tamanho máximo permitido de 10MB");
+        }
+        return ultimoArquivo;
     }
 
 }
